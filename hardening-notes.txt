@@ -1,0 +1,4 @@
+CONTROL 1: Disable root login
+echo "PermitRootLogin no" | sudo tee /etc/ssh/sshd_config.d/99-cis-hardening.conf
+Verify: sudo sshd -T | grep -i permitrootlogin   (expect: permitrootlogin no)
+

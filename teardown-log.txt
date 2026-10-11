@@ -1,0 +1,34 @@
+TEARDOWN LOG - cis-hardened-server
+Region: eu-west-2
+Tags: Project=cis-hardened-server, Owner=Obiku
+
+Format: phase | resource type | name   | id
+            1 |           VPC |cis-vpc | vpc-095b8cb08b109f1b7
+            1 | Subnet        | cis-private-subnet | subnet-059141585fc8737df
+            1 | Internet gateway | cis-igw | igw-07714be6dcf7bd8bb
+            1 | Subnet | cis-public-subnet | subnet-0567e85e78ba237b3
+            1 | Route table | cis-public-rt | rtb-0da508fc70150a604
+            1 | NAT gateway | cis-nat     | nat-02270b5ddbc3e7df7
+            1 | Elastic IP  | cis-nat-eip | eipalloc-0e2af9e298b4e6028
+            1 | Route table | cis-private-rt | rtb-03ba5361bcdcba015
+            1 | Security group | cis-instance-sg | sg-002cd76bca5ec7e31
+            1 | Security group | cis-endpoints-sg | sg-0c1403c00afc235a8
+            1 | VPC endpoint | cis-vpce-ssm | vpce-0dc7a21a29ac1c15c
+            1 | VPC endpoint | cis-vpce-ssmmessages | vpce-08a1b9f65b81685a2
+            1 | VPC endpoint | cis-vpce-ec2messages | vpce-02b0d4024399a790b
+            1 | VPC endpoint | cis-vpce-logs        | vpce-0567c2d00edab53c6
+            1 | VPC endpoint | cis-vpce-kms         | vpce-0bdbe4a0383712aa1
+            1 | VPC endpoint | cis-vpce-s3 | vpce-078b3e0d8fcfd309d
+            2 | KMS key | cis-hardened-key | 77065888-85a0-4e1d-8101-3393acad26c9
+            2 | S3 bucket | cis-evidence-575141563901 | cis-evidence-575141563901
+            3 | IAM policy | cis-evidence-upload-policy | arn:aws:iam::575141563901:policy/cis-evidence-upload-policy
+            3 | IAM role | cis-instance-role | arn:aws:iam::575141563901:role/cis-instance-role
+            3 | Instance profile | cis-instance-role | arn:aws:iam::575141563901:instance-profile/cis-instance-role
+            4 | Log group | /cis/ssm-sessions | /cis/ssm-sessions
+            4 | SSM preference | SSM-SessionManagerRunShell | /cis/ssm-sessions (delete doc at teardown)
+            5 | EC2 instance | cis-server |i-01a1eeac77d97c69f
+            5 | EBS volume   | cis-server     | vol-033a1638f455f2ccd
+ 
+
+
+
