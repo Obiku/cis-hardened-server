@@ -1,0 +1,83 @@
+#cloud-config
+# =============================================================================
+# BOOT SETUP for the CIS server (console Phases 6, 7 and 8, with no hands)
+# =============================================================================
+# cloud-init reads this file once, at the server's first boot.
+#   write_files : puts files on the disk first
+#   runcmd      : then runs commands in order, as root
+# Terraform fills in every $${...} before the server is launched.
+# ($${ is how a template writes a literal dollar-brace, as in this line.)
+# =============================================================================
+
+write_files:
+  - path: /usr/local/sbin/harden.sh
+    encoding: b64
+    content: ${harden_script}
+    permissions: "0700"
+  # harden.sh from the scripts folder (console Phase 6). b64 means the file is
+  # sent base64 encoded, so no character in the script can break this file.
+  # 0700: only root can read or run it.
+
+  - path: /usr/local/bin/cis-check.sh
+    encoding: b64
+    content: ${check_script}
+    permissions: "0700"
+  # cis-check.sh from the scripts folder (console Phase 7).
+
+  - path: /etc/systemd/system/cis-check.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Daily CIS compliance check
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/cis-check.sh
+  # The service: WHAT to run. oneshot means it runs once and finishes.
+
+  - path: /etc/systemd/system/cis-check.timer
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Run the CIS compliance check daily
+
+      [Timer]
+      OnCalendar=daily
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+  # The timer: WHEN to run it. Daily at midnight. Persistent=true means if the
+  # server was off at midnight, the check runs at the next boot.
+
+  - path: /etc/cis/cloudwatch-agent.json
+    encoding: b64
+    content: ${agent_config}
+    permissions: "0600"
+  # CloudWatch agent settings (console Phase 8), built in main.tf.
+
+runcmd:
+  - /usr/local/sbin/harden.sh
+  # Step 1: hardening, the five controls. Logs to /var/log/cis-hardening.log.
+
+  - apt-get install -y jq
+  # Step 2: jq builds the JSON evidence. Usually already installed; this
+  # makes sure.
+
+  - snap wait system seed.loaded
+  - snap install aws-cli --classic
+  # Step 3: the AWS CLI, used by cis-check.sh to upload evidence. The wait
+  # line holds until snap has finished starting up at first boot.
+
+  - wget -q -O /tmp/amazon-cloudwatch-agent.deb https://amazoncloudwatch-agent-${region}.s3.${region}.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+  - dpkg -i /tmp/amazon-cloudwatch-agent.deb
+  - /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/etc/cis/cloudwatch-agent.json
+  # Step 4: download the CloudWatch agent from AWS's regional bucket (through
+  # the S3 gateway endpoint), install it, then load the settings and start it
+  # (-a fetch-config load settings, -m ec2 running on EC2, -s start it).
+
+  - systemctl daemon-reload
+  - systemctl enable --now cis-check.timer
+  - systemctl start cis-check.service
+  # Step 5: tell systemd about the new files, switch the daily timer on, and
+  # run the check once now, so the first evidence appears in S3 at boot.
