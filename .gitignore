@@ -1,0 +1,23 @@
+# Terraform working folders created by "terraform init" (providers, modules).
+# They are downloaded again on every machine, so they never go in git.
+**/.terraform/*
+
+# Terraform state files. State can contain sensitive values and is the
+# source of truth for what exists, so it lives in S3, never in git.
+# (The small bootstrap state stays on this laptop only.)
+*.tfstate
+*.tfstate.*
+
+# Saved plan files and crash logs
+*.tfplan
+crash.log
+crash.*.log
+
+# Variable files that might hold personal or secret values.
+# Example files (*.tfvars.example) are still committed.
+*.auto.tfvars
+secret*.tfvars
+
+# NOTE: .terraform.lock.hcl is deliberately NOT ignored. It pins the exact
+# provider versions so every run uses the same ones. Industry practice is to
+# commit it.

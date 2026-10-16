@@ -1,0 +1,4 @@
+# Scripts and cloud-init templates run on Linux, so they must keep Linux line
+# endings (LF) even when checked out on Windows.
+*.sh    text eol=lf
+*.tftpl text eol=lf
