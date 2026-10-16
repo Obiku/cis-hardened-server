@@ -2,6 +2,10 @@
 
 An Ubuntu 24.04 server on AWS that hardens itself to the CIS benchmark at first boot, checks its own controls every day, and stores the results as tamper resistant evidence. The whole environment is built, tested for drift and destroyed with Terraform.
 
+![Architecture and data flow](docs/architecture-data-flow.drawio.png)
+
+Follow the numbered badges 1 to 10 for the main data path; the panel on the right narrates each step. Click the image for full size. The editable source for all diagrams is [docs/architecture.drawio](docs/architecture.drawio) (open it with draw.io).
+
 ## What it demonstrates
 
 - **Hardened by default.** The server applies five CIS controls at first boot with nobody logging in.
@@ -35,6 +39,12 @@ An Ubuntu 24.04 server on AWS that hardens itself to the CIS benchmark at first 
 - AWS Config with the `restricted-ssh` managed rule.
 - Security Hub with AWS Foundational Security Best Practices and CIS AWS Foundations Benchmark v1.2.0.
 
+### First boot
+
+The server configures itself through cloud-init, with nobody logging in:
+
+![First boot sequence](docs/first-boot.drawio.png)
+
 ## Controls checked daily
 
 | Check | Control | CIS Ubuntu 24.04 | ISO 27001:2022 |
@@ -55,6 +65,9 @@ The CIS Ubuntu benchmark is covered by the check script on the server. The CIS s
 ## Repository layout
 
 ```
+docs/
+  architecture.drawio  Editable source of the three diagrams
+  *.drawio.png         The diagrams shown in this README
 scripts/
   harden.sh            Boot hardening, five controls
   cis-check.sh         Daily compliance check and evidence upload
@@ -89,6 +102,10 @@ Requirements: Terraform 1.10 or later and AWS credentials with administrator acc
    terraform apply
    ```
 3. After about five minutes the first evidence file appears in the evidence bucket, and the server can be reached through Session Manager.
+
+Terraform works out the build order from the values each module passes to the next:
+
+![Build order](docs/build-order.drawio.png)
 
 To deploy in a different AWS account, change the bucket name in `terraform/envs/dev/backend.tf` and the `BUCKET` value in `scripts/cis-check.sh`. Every other name is built from the account ID automatically.
 
