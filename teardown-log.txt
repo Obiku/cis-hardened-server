@@ -28,7 +28,23 @@ Format: phase | resource type | name   | id
             4 | SSM preference | SSM-SessionManagerRunShell | /cis/ssm-sessions (delete doc at teardown)
             5 | EC2 instance | cis-server |i-01a1eeac77d97c69f
             5 | EBS volume   | cis-server     | vol-033a1638f455f2ccd
+            5 | EBS default encryption | cis-hardened-key | eu-west-2 account setting (disable at teardown)
+            5 | EC2 instance | cis-server | i-01a1eeac77d97c69f   TERMINATED
+            5 | EBS volume   | cis-server | vol-033a1638f455f2ccd TERMINATED
+            8 | Log group | /cis/auth     | /cis/auth
+            8 | Log group | /cis/evidence | /cis/evidence
+            9 | Config recorder | default | eu-west-2 (stop and delete at teardown)
+            9 | S3 bucket       | config-bucket-575141563901 | created by Config
+
+
  
 
 
 
+            6 | EC2 instance | cis-server-v2 | i-0a498defc72a0ff66
+            6 | EBS volume   | cis-server-v2 | vol-0c34a7824d533a1bd (deleted with instance)
+            9 | Config rule  | restricted-ssh | delete at teardown
+            9 | Security Hub | default hub | eu-west-2 (disable at teardown)
+
+TEARDOWN COMPLETE: 2026-10-11 (console build). All resources deleted; verified by direct service checks.
+KMS key 77065888-85a0-4e1d-8101-3393acad26c9 PendingDeletion until 2026-10-18.
