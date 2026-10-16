@@ -2,9 +2,27 @@
 
 An Ubuntu 24.04 server on AWS that hardens itself to the CIS benchmark at first boot, checks its own controls every day, and stores the results as tamper resistant evidence. The whole environment is built, tested for drift and destroyed with Terraform.
 
-![Architecture and data flow](docs/architecture-data-flow.drawio.png)
+![Architecture and data flow](docs/architecture-data-flow.png)
 
-Follow the numbered badges 1 to 10 for the main data path; the panel on the right narrates each step. Click the image for full size. The editable source for all diagrams is [docs/architecture.drawio](docs/architecture.drawio) (open it with draw.io).
+Click the image for full size. The editable source of all diagrams is [docs/architecture.drawio](docs/architecture.drawio) (open it with draw.io).
+
+**How to read it: follow the numbered badges 1 to 10, then the letters.**
+
+1. **Administrator** (top right, outside AWS). Starts a session from the browser. No SSH, no key pair.
+2. **Systems Manager.** Checks the administrator's IAM permissions, then sends the session on. Sessions close after 15 minutes idle and 60 minutes in total.
+3. **Interface endpoints.** The private door into the VPC. The session reaches the server through them.
+4. **cis-server.** The session opens here. The server never accepts incoming connections: its agents connected out to the endpoints first, and the session comes back down that connection. Logs go out the same way. Outbound 443 and 80 only.
+5. **S3 gateway endpoint.** Once a day the check script sends its JSON evidence file here.
+6. **Evidence bucket.** Stores the file under `evidence/`. The server can add files but never read or delete them.
+7. **CloudWatch Logs.** Receives server logs from 3 and the session recording from 2.
+8. **NAT gateway**, 9. **internet gateway**, 10. **internet.** The only route out, used for package updates. Nothing on the internet can start a connection in.
+
+Supporting parts:
+
+- **A. Role.** Gives the server short-lived credentials through IMDSv2, so no keys are stored on it.
+- **B. KMS key.** Encrypts the evidence bucket, the logs and the disk (C).
+- **D. AWS Config** records every change in the VPC, for example to the security groups, and flags port 22 open to the world. History goes to the Config bucket (E), findings to **Security Hub (F)**.
+- **G. Terraform** on the engineer's laptop builds everything and keeps its state, with a lock, in the state bucket (**H**).
 
 ## What it demonstrates
 
@@ -43,7 +61,7 @@ Follow the numbered badges 1 to 10 for the main data path; the panel on the righ
 
 The server configures itself through cloud-init, with nobody logging in:
 
-![First boot sequence](docs/first-boot.drawio.png)
+![First boot sequence](docs/first-boot.png)
 
 ## Controls checked daily
 
@@ -67,7 +85,7 @@ The CIS Ubuntu benchmark is covered by the check script on the server. The CIS s
 ```
 docs/
   architecture.drawio  Editable source of the three diagrams
-  *.drawio.png         The diagrams shown in this README
+  *.png                The diagrams shown in this README
 scripts/
   harden.sh            Boot hardening, five controls
   cis-check.sh         Daily compliance check and evidence upload
@@ -105,7 +123,19 @@ Requirements: Terraform 1.10 or later and AWS credentials with administrator acc
 
 Terraform works out the build order from the values each module passes to the next:
 
-![Build order](docs/build-order.drawio.png)
+![Build order](docs/build-order.png)
+
+**How to read it: start top left and follow the arrows.** Solid arrows pass a value to the next step; dashed arrows are ordering rules (`depends_on`) with no value passed.
+
+- **T1 bootstrap** creates the state bucket. It is built once, on its own, because Terraform needs somewhere to keep its state before it can build anything else.
+- **T2 envs/dev** is the folder where the commands are run. It keeps its state in that bucket and calls each module.
+- **T3 network** builds the VPC. It needs nothing from the other modules, so it is built at the same time as T4.
+- **T4 kms** creates the key. Its key ARN flows to the evidence bucket, the IAM policy, the log groups and the server's disk.
+- **T4 evidence** creates the bucket, encrypted with that key. Its bucket ARN flows to T5.
+- **T5 iam** writes the upload policy, which names that bucket and key. Its instance profile flows to T7.
+- **T6 logging** creates the encrypted log groups. They must exist before the server boots, or the CloudWatch agent would create unencrypted ones.
+- **T7 compute** launches the server. It needs the subnet and security group (T3), the key (T4), the role (T5) and the log groups (T6), so it comes near the end.
+- **T8 monitoring** switches on Config and Security Hub last, so they watch the finished build.
 
 To deploy in a different AWS account, change the bucket name in `terraform/envs/dev/backend.tf` and the `BUCKET` value in `scripts/cis-check.sh`. Every other name is built from the account ID automatically.
 
