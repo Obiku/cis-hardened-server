@@ -10,11 +10,11 @@ Click the image for full size. The editable source of all diagrams is [docs/arch
 
 1. **Administrator** (top right, outside AWS). Starts a session from the browser. No SSH, no key pair.
 2. **Systems Manager.** Checks the administrator's IAM permissions, then sends the session on. Sessions close after 15 minutes idle and 60 minutes in total.
-3. **Interface endpoints.** The private door into the VPC. The session reaches the server through them.
-4. **cis-server.** The session opens here. The server never accepts incoming connections: its agents connected out to the endpoints first, and the session comes back down that connection. Logs go out the same way. Outbound 443 and 80 only.
+3. **Interface endpoints.** The private door into the VPC. The session reaches the server through them. Their security group, `cis-endpoints-sg` (red dashed box), accepts port 443 only from the server.
+4. **cis-server.** The session opens here. The server never accepts incoming connections: its agents connected out to the endpoints first, and the session comes back down that connection. Logs go out the same way. Its security group, `cis-instance-sg` (red dashed box), has no inbound rules and allows outbound 443 and 80 only.
 5. **S3 gateway endpoint.** Once a day the check script sends its JSON evidence file here.
 6. **Evidence bucket.** Stores the file under `evidence/`. The server can add files but never read or delete them.
-7. **CloudWatch Logs.** Receives server logs from 3 and the session recording from 2.
+7. **CloudWatch Logs.** Receives, through the logs endpoint (3), everything the server's agents send: the Session Manager session recordings, the server's login log and the daily results.
 8. **NAT gateway**, 9. **internet gateway**, 10. **internet.** The only route out, used for package updates. Nothing on the internet can start a connection in.
 
 Supporting parts:
